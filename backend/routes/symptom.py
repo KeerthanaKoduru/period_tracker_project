@@ -12,7 +12,16 @@ def get_symptoms():
     user_id = int(get_jwt_identity())
     print('GET /symptoms/ for user:', user_id)
     symptoms = SymptomLog.query.filter_by(user_id=user_id).all()
-    return jsonify([{'id': s.id, 'date': s.date.isoformat(), 'symptom': s.symptom, 'severity': s.severity, 'notes': s.notes} for s in symptoms])
+    return jsonify([
+        {
+            'id': s.id,
+            'date': s.date.isoformat(),
+            'mood': s.mood,
+            'cramps': s.cramps,
+            'flow': s.flow,
+            'notes': s.notes
+        } for s in symptoms
+    ])
 
 @symptom_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -26,8 +35,9 @@ def add_symptom():
         symptom = SymptomLog(
             user_id=user_id,
             date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
-            symptom=data['symptom'],
-            severity=data['severity'],
+            mood=data.get('mood'),
+            cramps=data.get('cramps'),
+            flow=data.get('flow'),
             notes=data.get('notes')
         )
         db.session.add(symptom)
@@ -42,7 +52,14 @@ def add_symptom():
 def get_symptom(symptom_id):
     user_id = int(get_jwt_identity())
     symptom = SymptomLog.query.filter_by(id=symptom_id, user_id=user_id).first_or_404()
-    return jsonify({'id': symptom.id, 'date': symptom.date.isoformat(), 'symptom': symptom.symptom, 'severity': symptom.severity, 'notes': symptom.notes})
+    return jsonify({
+        'id': symptom.id,
+        'date': symptom.date.isoformat(),
+        'mood': symptom.mood,
+        'cramps': symptom.cramps,
+        'flow': symptom.flow,
+        'notes': symptom.notes
+    })
 
 @symptom_bp.route('/<int:symptom_id>/', methods=['PUT'])
 @jwt_required()
@@ -51,8 +68,9 @@ def update_symptom(symptom_id):
     symptom = SymptomLog.query.filter_by(id=symptom_id, user_id=user_id).first_or_404()
     data = request.get_json()
     symptom.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
-    symptom.symptom = data['symptom']
-    symptom.severity = data['severity']
+    symptom.mood = data.get('mood')
+    symptom.cramps = data.get('cramps')
+    symptom.flow = data.get('flow')
     symptom.notes = data.get('notes')
     db.session.commit()
     return jsonify({'msg': 'Symptom log updated'})
