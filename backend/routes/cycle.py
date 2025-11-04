@@ -9,10 +9,17 @@ cycle_bp = Blueprint('cycle', __name__, url_prefix='/api/cycles')
 @cycle_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_cycles():
-    user_id = int(get_jwt_identity())
-    print('GET /cycles/ for user:', user_id)
-    cycles = CycleLog.query.filter_by(user_id=user_id).all()
-    return jsonify([{'id': c.id, 'start_date': c.start_date.isoformat(), 'end_date': c.end_date.isoformat(), 'notes': c.notes} for c in cycles])
+    try:
+        identity = get_jwt_identity()
+        print('JWT identity:', identity)
+        user_id = int(identity)
+        print('GET /cycles/ for user:', user_id)
+        cycles = CycleLog.query.filter_by(user_id=user_id).all()
+        print('Cycles found:', len(cycles))
+        return jsonify([{'id': c.id, 'start_date': c.start_date.isoformat(), 'end_date': c.end_date.isoformat(), 'notes': c.notes} for c in cycles])
+    except Exception as e:
+        print('Error in get_cycles:', e)
+        return jsonify({'error': str(e)}), 422
 
 @cycle_bp.route('/', methods=['POST'])
 @jwt_required()

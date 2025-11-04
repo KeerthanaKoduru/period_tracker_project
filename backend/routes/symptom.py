@@ -17,10 +17,12 @@ def get_symptoms():
 @symptom_bp.route('/', methods=['POST'])
 @jwt_required()
 def add_symptom():
-    user_id = int(get_jwt_identity())
-    data = request.get_json()
-    print('POST /symptoms/ data:', data)
     try:
+        identity = get_jwt_identity()
+        print('JWT identity:', identity)
+        user_id = int(identity)
+        data = request.get_json()
+        print('POST /symptoms/ data:', data)
         symptom = SymptomLog(
             user_id=user_id,
             date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
@@ -33,7 +35,7 @@ def add_symptom():
         return jsonify({'msg': 'Symptom log added'})
     except Exception as e:
         print('Error in add_symptom:', e)
-        return jsonify({'error': str(e), 'data': data}), 422
+        return jsonify({'error': str(e)}), 422
 
 @symptom_bp.route('/<int:symptom_id>/', methods=['GET'])
 @jwt_required()
