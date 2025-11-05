@@ -1,41 +1,42 @@
-from extensions import db
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+
+db = SQLAlchemy()
 
 class User(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    cycles = db.relationship('CycleLog', backref='user', lazy=True)
-    symptoms = db.relationship('SymptomLog', backref='user', lazy=True)
-    reminders = db.relationship('MedicationReminder', backref='user', lazy=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)  # in real app hash!
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+    cycles = db.relationship('Cycle', backref='user', cascade="all, delete-orphan")
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class CycleLog(db.Model):
+class Cycle(db.Model):
+    __tablename__ = 'cycles'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
-    notes = db.Column(db.String(256))
+    end_date = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class SymptomLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    mood = db.Column(db.String(64))
-    cramps = db.Column(db.String(32))
-    flow = db.Column(db.String(32))
-    notes = db.Column(db.String(256))
+    symptoms = db.relationship('Symptom', backref='cycle', cascade="all, delete-orphan")
+    reminders = db.relationship('Reminder', backref='cycle', cascade="all, delete-orphan")
 
-class MedicationReminder(db.Model):
+class Symptom(db.Model):
+    __tablename__ = 'symptoms'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    medication = db.Column(db.String(128), nullable=False)
-    time = db.Column(db.Time, nullable=False)
-    notes = db.Column(db.String(256))
+    cycle_id = db.Column(db.Integer, db.ForeignKey('cycles.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    severity = db.Column(db.Integer, default=1)  # 1-5
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Reminder(db.Model):
+    __tablename__ = 'reminders'
+    id = db.Column(db.Integer, primary_key=True)
+    cycle_id = db.Column(db.Integer, db.ForeignKey('cycles.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    scheduled_for = db.Column(db.DateTime, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -1,132 +1,61 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField, Button, Paper } from "@mui/material";
+import { Box, TextField, Button, Paper, Typography } from "@mui/material";
+import api, { setAuthToken } from "../api";
 import { useNavigate } from "react-router-dom";
 
-const LoginPage = () => {
-  const navigate = useNavigate();
+export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [registerMode, setRegisterMode] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      alert("Please enter username and password!");
-      return;
-    }
-
+  const submit = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Login successful!");
-        if (data.access_token) {
-          localStorage.setItem("token", data.access_token);
-        }
-        navigate("/home", { state: { fromSignup: false, userName: username } });
-      } else {
-        alert(data.msg || "Login failed!");
+      if (registerMode) {
+        await api.post("/auth/register", { username, password });
+        setRegisterMode(false);
+        alert("registered — now log in");
+        return;
       }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      alert("Something went wrong. Please try again.");
+      const res = await api.post("/auth/login", { username, password });
+      const token = res.data.access_token;
+      setAuthToken(token);
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.msg || "Error");
     }
   };
 
   return (
-    <Box
-      sx={{
-        width: "100vw",
-        height: "100vh",
-        bgcolor: "#fff",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-      }}
-    >
-      <Typography
-        variant="h5"
-        sx={{ fontWeight: "bold", color: "#ff7eb9", mb: 2 }}
-      >
-        Period Tracker & Care App
+    <Paper sx={{ p: 3, maxWidth: 480, mx: "auto" }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>
+        {registerMode ? "Register" : "Login"}
       </Typography>
-
-      <Paper
-        elevation={3}
-        sx={{
-          bgcolor: "#ffe6f0",
-          p: 4,
-          borderRadius: 3,
-          width: "320px",
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{ mb: 2, color: "#333", fontWeight: "bold" }}
-        >
-          Login
-        </Typography>
-
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <TextField
-          fullWidth
           label="Username"
-          variant="outlined"
-          size="small"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          sx={{ mb: 2, bgcolor: "#fff", borderRadius: 1 }}
         />
         <TextField
-          fullWidth
           label="Password"
-          variant="outlined"
           type="password"
-          size="small"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          sx={{ mb: 2, bgcolor: "#fff", borderRadius: 1 }}
         />
-
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{
-            backgroundColor: "#ff7eb9",
-            color: "#fff",
-            fontWeight: "bold",
-            "&:hover": { backgroundColor: "#ff5ca8" },
-            mb: 1,
-          }}
-          onClick={handleLogin}
-        >
-          Login
-        </Button>
-
-        <Button
-          fullWidth
-          variant="outlined"
-          sx={{
-            borderColor: "#ff7eb9",
-            color: "#ff7eb9",
-            fontWeight: "bold",
-            "&:hover": { backgroundColor: "#fff0f7" },
-          }}
-          onClick={() => navigate("/")}
-        >
-          ← Back to Dashboard
-        </Button>
-      </Paper>
-    </Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button variant="contained" onClick={submit}>
+            {registerMode ? "Register" : "Login"}
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setRegisterMode(!registerMode)}
+          >
+            {registerMode ? "Switch to login" : "Switch to register"}
+          </Button>
+        </Box>
+      </Box>
+    </Paper>
   );
-};
-
-export default LoginPage;
+}
